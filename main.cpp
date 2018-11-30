@@ -31,6 +31,60 @@ int main(int argc, _TCHAR* argv[])
 	CImg<unsigned char> Image2(ImagePath2);
 	CImg<unsigned char> resultImage(Image1.width() + Image2.width(), Image1.height(), 1, 3);
 
+	CImg<unsigned char> spherical1(Image1.width(), Image1.height(), 1, 3);
+
+	cimg_forXY(Image1, x, y) {
+		int xCenter = Image1.width() / 2;
+		int yCenter = Image1.height() / 2;
+		int X = x - xCenter;
+		int Y = y - yCenter;
+		double R = sqrt(pow(X, 2)/* + pow(Y, 2)*/ + pow(800, 2)); // focus = 800?
+		double xHat = X / R;
+		double yHat = Y / R;
+		double zHat = 800 / R;
+		double r2 = pow(xHat, 2) + pow(yHat, 2);
+		double k1 = 0.05;
+		// int xdPrime = (xHat/abs(xHat))*(abs(xHat) / zHat - r2 * k1) * 800 + xCenter;
+		int ydPrime = (yHat / abs(yHat))*(abs(yHat) / zHat - r2 * k1) * 800 + yCenter;
+		if (/*xdPrime < spherical1.width() && xdPrime >= 0 && */ydPrime < spherical1.height() && ydPrime >= 0) {
+			//cout << "x " << x << " y " << y << "; xPrime " << xdPrime << " yPrime " << ydPrime << "r2" << r2 << endl;
+			spherical1(x, ydPrime, 0, 0) = Image1(x, y, 0, 0);
+			spherical1(x, ydPrime, 0, 1) = Image1(x, y, 0, 1);
+			spherical1(x, ydPrime, 0, 2) = Image1(x, y, 0, 2);
+		}
+	}
+	Image1 = spherical1;
+	spherical1.save("test1.png");
+	CImg<unsigned char> spherical2(Image2.width(), Image2.height(), 1, 3);
+	cimg_forXY(spherical2, x, y) {
+		spherical2(x, y, 0, 0) = 0;
+		spherical2(x, y, 0, 1) = 0;
+		spherical2(x, y, 0, 2) = 0;
+	}
+
+	cimg_forXY(Image2, x, y) {
+		int xCenter = Image2.width() / 2;
+		int yCenter = Image2.height() / 2;
+		int X = x - xCenter;
+		int Y = y - yCenter;
+		double R = sqrt(pow(X, 2)/* + pow(Y, 2)*/ + pow(800, 2)); // focus = 800?
+		double xHat = X / R;
+		double yHat = Y / R;
+		double zHat = 800 / R;
+		double r2 = pow(xHat, 2) + pow(yHat, 2);
+		double k1 = 0.1;
+		// int xdPrime = (xHat / zHat + r2 * k1) * 800 + xCenter;
+		int ydPrime = (yHat / abs(yHat))*(abs(yHat) / zHat - r2 * k1) * 800 + yCenter;
+		//  xOrigin = ((x - xCenter)/800 - r2*k1)*(800/R)*R + xCenter;
+		if (/*xdPrime < spherical2.width() && xdPrime >= 0 &&*/ ydPrime < spherical2.height() && ydPrime >= 0) {
+			//cout << "x " << x << " y " << y << "; xPrime " << xdPrime << " yPrime " << ydPrime << "r2" << r2 << endl;
+			spherical2(x, ydPrime, 0, 0) = Image2(x, y, 0, 0);
+			spherical2(x, ydPrime, 0, 1) = Image2(x, y, 0, 1);
+			spherical2(x, ydPrime, 0, 2) = Image2(x, y, 0, 2);
+		}
+	}
+	Image2 = spherical2;
+	Image2.save("sph2.png");
 	cimg_forXY(Image1, x, y) {
 		resultImage(x, y, 0, 0) = Image1(x, y, 0,0);
 		resultImage(x, y, 0, 1) = Image1(x, y, 0, 1);
@@ -307,6 +361,32 @@ int main(int argc, _TCHAR* argv[])
 			resultImage.draw_line(keyPoints1[matchedPairsVec[i].first].x, keyPoints1[matchedPairsVec[i].first].y, keyPoints2[matchedPairsVec[i].second].x + Image1.width(), keyPoints2[matchedPairsVec[i].second].y, color);
 		}
 	}
+	// spherical coordinate 映射到球坐标
+	// 使用Image1 test
+	
+	// warping
+	cimg_forXY(Image2, x, y) {
+		if (Image2(x, y, 0, 0) != 0 || Image2(x, y, 0, 1) != 0|| Image2(x, y, 0, 2) != 0) {
+			// 计算变换后的下标
+		// 向前映射
+			double data[3] = { x, y, 1 };
+			Matrix xy(data, 3, 1);
+			Matrix xyPrime = bestH * xy;
+			//		if (xyPrime.item[2] != 1) {
+				//		cout << "zz" << endl;
+					//}
+			int xPrime = round(xyPrime.item[0]);
+			int yPrime = round(xyPrime.item[1]);
+			if (xPrime < resultImage.width() && xPrime >= 0 && yPrime >= 0 && yPrime < resultImage.height()) {
+				resultImage(xPrime, yPrime, 0, 0) = Image2(x, y, 0, 0);
+				resultImage(xPrime, yPrime, 0, 1) = Image2(x, y, 0, 1);
+				resultImage(xPrime, yPrime, 0, 2) = Image2(x, y, 0, 2);
+			}
+		}
+	}
+	
+	// test.save("test.png");
+
 	// result.draw_circle(keyPoints1[neighbours[0].index].x, keyPoints1[neighbours[0].index].y, 1, color);
 	// result.draw_circle(keyPoints2[i].x + Image1.width(), keyPoints2[i].y, 1, color);
 	// 
@@ -322,8 +402,8 @@ int main(int argc, _TCHAR* argv[])
 
 
 	// 显示结果
-	Image1.save("left1.png");
-	Image2.save("right1.png");
+	//Image1.save("left1.png");
+	//Image2.save("right1.png");
 	resultImage.save("stitching.png");
 	// cvDestroyAllWindows();
 	return 0;
