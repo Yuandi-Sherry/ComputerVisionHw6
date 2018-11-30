@@ -1,0 +1,6 @@
+*.bmp
+*.png
+*.filters
+*.user
+Debug/
+x64/
