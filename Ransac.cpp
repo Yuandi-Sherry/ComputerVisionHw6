@@ -25,11 +25,12 @@ extern "C" {
 
 
 Ransac::Ransac(const vector<pair<int, int> > & matchedPairsVec, const vector<vector <VlSiftKeypoint> > & keyPoints,
-	const vector<vector < vector <float> > > & descriptors, int img1Id, int img2Id, const CImg<unsigned char> * imgs) {
+	const vector<vector < vector <float> > > & descriptors, int img1Id, int img2Id, vector< CImg<unsigned char> > & imgs) {
+	/* img1 is the reference, img2 is to be change*/
+	// 计算所需次数
 	int times = ceil(log(1 - confidence) / log(1 - pow(inlierRatio, 4)));
 	Matrix bestH(3);
 	int bestVote = 0;
-
 	for (int t = 0; t < times; t++) {
 		int fourPairs[4];
 		for (int i = 0; i < 4; i++) {
@@ -47,9 +48,7 @@ Ransac::Ransac(const vector<pair<int, int> > & matchedPairsVec, const vector<vec
 			data[i + 14] = -keyPoints[img1Id][matchedPairsVec[fourPairs[i / 16]].first].y * keyPoints[img2Id][matchedPairsVec[fourPairs[i / 16]].second].x;
 			data[i + 15] = -keyPoints[img1Id][matchedPairsVec[fourPairs[i / 16]].first].y * keyPoints[img2Id][matchedPairsVec[fourPairs[i / 16]].second].y;
 		}
-		int a = 8;
-
-		Matrix A(data, a, a);
+		Matrix A(data, 8, 8);
 		double vecB[8];
 		for (int i = 0; i < 8; i += 2) {
 			vecB[i] = keyPoints[img1Id][matchedPairsVec[fourPairs[i / 2]].first].x;
@@ -91,13 +90,10 @@ Ransac::Ransac(const vector<pair<int, int> > & matchedPairsVec, const vector<vec
 
 	// testing
 	/*CImg<unsigned char> result = CImg<unsigned char>(imgs[img1Id].width() + imgs[img2Id].width(), imgs[img1Id].height(), 1, 3);
-	cimg_forXY(imgs[img1Id], x, y) {
-		result(x, y, 0, 0) = imgs[img1Id](x, y, 0, 0);
-		result(x, y, 0, 1) = imgs[img1Id](x, y, 0, 1);
-		result(x, y, 0, 2) = imgs[img1Id](x, y, 0, 2);
-		result(x + imgs[img1Id].width(), y, 0, 0) = imgs[img2Id](x, y, 0, 0);
-		result(x + imgs[img1Id].width(), y, 0, 1) = imgs[img2Id](x, y, 0, 1);
-		result(x + imgs[img1Id].width(), y, 0, 2) = imgs[img2Id](x, y, 0, 2);
+	cimg_forXY(imgs[img2Id], x, y) {
+		imgs[img1Id](x + imgs[img2Id].width() * (img2Id - 1), y, 0, 0) = imgs[img2Id](x, y, 0, 0);
+		imgs[img1Id](x + imgs[img2Id].width() *  (img2Id - 1), y, 0, 1) = imgs[img2Id](x, y, 0, 1);
+		imgs[img1Id](x + imgs[img2Id].width() *  (img2Id - 1), y, 0, 2) = imgs[img2Id](x, y, 0, 2);
 	}*/
 	// testing end
 
@@ -116,10 +112,10 @@ Ransac::Ransac(const vector<pair<int, int> > & matchedPairsVec, const vector<vec
 			int g = rand() % 256;
 			int b = rand() % 256;
 			int color[3] = { r, g, b };
-			result.draw_line(keyPoints[img1Id][matchedPairsVec[i].first].x, keyPoints[img1Id][matchedPairsVec[i].first].y, keyPoints[img2Id][matchedPairsVec[i].second].x + imgs[img1Id].width(), keyPoints[img2Id][matchedPairsVec[i].second].y, color);
+			//imgs[0].draw_line(keyPoints[img1Id][matchedPairsVec[i].first].x, keyPoints[img1Id][matchedPairsVec[i].first].y, keyPoints[img2Id][matchedPairsVec[i].second].x  + imgs[img2Id].width() * (img2Id-1), keyPoints[img2Id][matchedPairsVec[i].second].y, color);
 		}
-	}
-	result.display();*/
+	}*/
+	//imgs[0].display();
 	BestH = new Matrix(bestH);
 }
 

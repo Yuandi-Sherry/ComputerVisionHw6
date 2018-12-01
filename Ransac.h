@@ -28,12 +28,12 @@ class Ransac
 {
 public:
 	Ransac(const vector<pair<int, int> > & matchedPairsVec, const vector<vector <VlSiftKeypoint> > & keyPoints,
-		const vector<vector < vector <float> > > & descriptors, int, int, const CImg<unsigned char> * imgs);
+		const vector<vector < vector <float> > > & descriptors, int, int, vector< CImg<unsigned char> > & imgs);
 	~Ransac();
 	Matrix* getBestH();
 private:
 	double confidence = 0.99;
-	double inlierRatio = 0.3;
+	double inlierRatio = 0.2;
 	double epsilon = 1.5;
 	Matrix* BestH;
 

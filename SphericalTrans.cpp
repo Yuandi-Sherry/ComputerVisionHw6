@@ -1,13 +1,17 @@
 #include "SphericalTrans.h"
 #include "CImg.h"
 #include <string>
+#include <iostream>
+#include <vector>
 using namespace std;
 using namespace cimg_library;
 
-SphericalTrans::SphericalTrans(CImg<unsigned char> * imgs, int n)
+SphericalTrans::SphericalTrans(vector< CImg<unsigned char> >& imgs, int n)
 {
-	focus = 595;
+	
+	focus = 2000;
 	for (int i = 0; i < n; i++) {
+		cout << "Çò×ø±ê±ä»» " << i << endl;
 		// imgs[i].display();
 		CImg<unsigned char> temp(imgs[i].width(), imgs[i].height(), 1, 3);
 		cimg_forXY(temp, x, y) {
@@ -35,7 +39,7 @@ SphericalTrans::SphericalTrans(CImg<unsigned char> * imgs, int n)
 		}
 		imgs[i] = temp;
 		string name = "sph" + to_string(i);
-		imgs[i].save((name + ".png").c_str());
+		imgs[i].save((name + ".bmp").c_str());
 	}
 	
 }

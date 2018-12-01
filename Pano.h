@@ -23,13 +23,17 @@ public:
 	~Pano();
 	
 private:
-	CImg<unsigned char> * imgs;
+	vector< CImg<unsigned char> > imgs;
 	int num;
 	vector<vector <VlSiftKeypoint> > keyPoints; // 每幅图片的特征点序列
 	vector<vector < vector <float> > > descriptors; // 每幅图片的特征点序列
 	vector<pair<int, int> > matchedPairsVec; // 获得匹配的数对
-	void getMatchedPairs(int img1Id, int img2Id);
+	void getMatchedPairs(int imgId);
 	void getFeatures();
+	void updateFeatures(int imgId);
 	void warping(Matrix HMat, int img1Id, int img2Id);
-
+	void doPairsMatching(int img1Id, int img2Id);
+	CImg<unsigned char> resultImage;
+	int left[17]; // 维护每个图片变换后的x在结果图中的最小值
+	int right[17];
 };
