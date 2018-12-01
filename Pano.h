@@ -30,7 +30,7 @@ private:
 	vector<pair<int, int> > matchedPairsVec; // 获得匹配的数对
 	void getMatchedPairs(int imgId);
 	void getFeatures();
-	void updateFeatures(int imgId);
+	void updateFeatures();
 	void warping(Matrix HMat, int img1Id, int img2Id);
 	void doPairsMatching(int img1Id, int img2Id);
 	CImg<unsigned char> resultImage;

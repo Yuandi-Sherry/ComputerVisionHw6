@@ -29,8 +29,8 @@ Pano::Pano(const string filenames [], int n)
 		imgs.push_back(tempImg);
 	}
 	// 进行球坐标变换
-	//SphericalTrans st(imgs, num);
-	resultImage = CImg<unsigned char>(imgs[img1Id].width() * (num-1)/2, imgs[img1Id].height(), 1, 3);
+	SphericalTrans st(imgs, num);
+	resultImage = CImg<unsigned char>(imgs[img1Id].width() * (num-1)/1.8, imgs[img1Id].height(), 1, 3);
 	
 	
 	// 初始化resultImage
@@ -48,16 +48,17 @@ Pano::Pano(const string filenames [], int n)
 	imgs[0] = resultImage; // 第0个图片为result
 	getFeatures(); // 获取所有图片的特征点
 	doPairsMatching(0, img2Id);
+	img1Id--; img2Id++;
 	for (int t = 0; t < num / 2; t++) {
 		cout << img1Id << " " << img2Id << endl;
 		updateFeatures();
-		if (img1Id > 1) {
-			img1Id--;
+		if (img1Id >= 1) {
 			doPairsMatching(0, img1Id);
+			img1Id--;
 		}
-		if (img2Id < num - 1) {
-			img2Id++;
+		if (img2Id <= num - 1) {
 			doPairsMatching(0, img2Id);
+			img2Id++;
 		}		
 	}
 
@@ -138,14 +139,14 @@ void Pano::getFeatures() {
 	}
 }
 
-void Pano::updateFeatures(int imgId) {
+void Pano::updateFeatures() {
 	cout << "update features of all the pics" << endl;
 	VlSiftFilt *SiftFilt = NULL;
-	int imgLast = imgId > num / 2 ? imgId - 1 : imgId + 1;
+	
 	// int noctaves = log(sqrt(imgs[1].height()*imgs[1].width())) / log(2) - 3;
 	int noctaves = 4;
 	int nlevels = 2, o_min = 0; // octave数目，每个octave层级数目
-	SiftFilt = vl_sift_new(right[imgLast] - left[imgLast], imgs[0].height(), noctaves, nlevels, o_min);
+	SiftFilt = vl_sift_new(imgs[0].width(), imgs[0].height(), noctaves, nlevels, o_min);
 	vl_sift_pix *ImageData = new vl_sift_pix[imgs[0].height()*imgs[0].width()];
 	for (int i = 0; i < imgs[0].height(); i++) {
 		for (int j = 0; j < imgs[0].width(); j++) {
@@ -237,28 +238,31 @@ void Pano::getMatchedPairs(int imgId) {
 	vl_kdforest_delete(forest);
 	delete[] data1;
 	delete[] data2;
+	cout << "配对点的数目" << matchedPairsVec.size() << endl;
 	
 	
 }
 
 void Pano::warping(Matrix HMat, int img1Id, int img2Id) {
-	cout << "start warping img2" << endl;
+	//cout << "start warping img2" << endl;
 	// 根据在左边和右边判断alpha
-	
+	cout << "imgid" << img2Id << endl;
 	double temp1[3] = { 0,0,1 }; // 左上
 	Matrix lt(temp1, 3, 1);
-	double temp2[3] = {0, imgs[img2Id].height(), 1}; // 右上
+	double temp2[3] = { imgs[img2Id].width(), 0, 1 }; // 右上
 	Matrix rt(temp2, 3, 1);
-	double temp3[3] = { imgs[img2Id].width(), 0, 1 };
+	double temp3[3] = {0, imgs[img2Id].height(), 1};
 	Matrix lb(temp3, 3, 1); // 左下
 	double temp4[3] = { imgs[img2Id].width(), imgs[img2Id].height(), 1 };
-	Matrix rb(temp3, 3, 1); // 右下
-	int lowX = min((HMat*lt).item[0], (HMat*rt).item[0]) >= 0? min((HMat*lt).item[0], (HMat*rt).item[0]):0;
-	int highX = max((HMat*lb).item[0],(HMat*rb).item[0]) < imgs[0].width() ? max((HMat*lb).item[0], (HMat*rb).item[0]) : imgs[0].width()-1;
-	int lowY = min((HMat*lt).item[1], (HMat*lb).item[1]) >= 0 ? min((HMat*lt).item[1], (HMat*lb).item[1]) : 0;
-	int highY = max((HMat*rt).item[1], (HMat*rb).item[1]) < imgs[0].height() ? max((HMat*rt).item[1], (HMat*rb).item[1]) : imgs[0].height() - 1;;
+	Matrix rb(temp4, 3, 1); // 右下
+	cout << HMat << endl;
+	int lowY = min((HMat*lt).item[1], (HMat*rt).item[1]) >= 0? min((HMat*lt).item[1], (HMat*rt).item[1]):0;
+	int highY = max((HMat*lb).item[1],(HMat*rb).item[1]) < imgs[0].height() ? max((HMat*lb).item[1], (HMat*rb).item[1]) : imgs[0].height()-1;
+	int lowX = min((HMat*lt).item[0], (HMat*lb).item[0]) >= 0 ? min((HMat*lt).item[0], (HMat*lb).item[0]) : 0;
+	int highX = max((HMat*rt).item[0], (HMat*rb).item[0]) < imgs[0].width() ? max((HMat*rt).item[0], (HMat*rb).item[0]) : imgs[0].width() - 1;
 	left[img2Id] = lowX;
 	right[img2Id] = highX;
+	cout << lowX << " ------ " << highX << " " << lowY << " " << highY << endl;
 	Matrix inverse(HMat.Inverse());
 	//cimg_forXY(imgs[0],x,y) {
 	for (int x = lowX; x < highX; x++) {
