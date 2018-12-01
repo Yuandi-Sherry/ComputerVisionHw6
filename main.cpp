@@ -38,19 +38,19 @@ int main(int argc, _TCHAR* argv[])
 		int yCenter = Image1.height() / 2;
 		int X = x - xCenter;
 		int Y = y - yCenter;
-		double R = sqrt(pow(X, 2)/* + pow(Y, 2)*/ + pow(800, 2)); // focus = 800?
+		double R = sqrt(pow(X, 2) + pow(Y, 2) + pow(800, 2)); // focus = 800?
 		double xHat = X / R;
 		double yHat = Y / R;
 		double zHat = 800 / R;
-		double r2 = pow(xHat, 2) + pow(yHat, 2);
-		double k1 = 0.05;
-		// int xdPrime = (xHat/abs(xHat))*(abs(xHat) / zHat - r2 * k1) * 800 + xCenter;
-		int ydPrime = (yHat / abs(yHat))*(abs(yHat) / zHat - r2 * k1) * 800 + yCenter;
-		if (/*xdPrime < spherical1.width() && xdPrime >= 0 && */ydPrime < spherical1.height() && ydPrime >= 0) {
-			//cout << "x " << x << " y " << y << "; xPrime " << xdPrime << " yPrime " << ydPrime << "r2" << r2 << endl;
-			spherical1(x, ydPrime, 0, 0) = Image1(x, y, 0, 0);
-			spherical1(x, ydPrime, 0, 1) = Image1(x, y, 0, 1);
-			spherical1(x, ydPrime, 0, 2) = Image1(x, y, 0, 2);
+		double phi = asin(yHat);
+		double theta = asin(xHat / cos(phi));
+		int s = 800; // ½¹¾à
+		int xTide = s * theta + xCenter;
+		int yTide = s * phi + yCenter;
+		if (xTide < spherical1.width() && xTide >= 0 && yTide < spherical1.height() && yTide >= 0) {
+			spherical1(xTide, yTide, 0, 0) = Image1(x, y, 0, 0);
+			spherical1(xTide, yTide, 0, 1) = Image1(x, y, 0, 1);
+			spherical1(xTide, yTide, 0, 2) = Image1(x, y, 0, 2);
 		}
 	}
 	Image1 = spherical1;
@@ -67,20 +67,19 @@ int main(int argc, _TCHAR* argv[])
 		int yCenter = Image2.height() / 2;
 		int X = x - xCenter;
 		int Y = y - yCenter;
-		double R = sqrt(pow(X, 2)/* + pow(Y, 2)*/ + pow(800, 2)); // focus = 800?
+		double R = sqrt(pow(X, 2) + pow(Y, 2) + pow(800, 2)); // focus = 800?
 		double xHat = X / R;
 		double yHat = Y / R;
 		double zHat = 800 / R;
-		double r2 = pow(xHat, 2) + pow(yHat, 2);
-		double k1 = 0.1;
-		// int xdPrime = (xHat / zHat + r2 * k1) * 800 + xCenter;
-		int ydPrime = (yHat / abs(yHat))*(abs(yHat) / zHat - r2 * k1) * 800 + yCenter;
-		//  xOrigin = ((x - xCenter)/800 - r2*k1)*(800/R)*R + xCenter;
-		if (/*xdPrime < spherical2.width() && xdPrime >= 0 &&*/ ydPrime < spherical2.height() && ydPrime >= 0) {
-			//cout << "x " << x << " y " << y << "; xPrime " << xdPrime << " yPrime " << ydPrime << "r2" << r2 << endl;
-			spherical2(x, ydPrime, 0, 0) = Image2(x, y, 0, 0);
-			spherical2(x, ydPrime, 0, 1) = Image2(x, y, 0, 1);
-			spherical2(x, ydPrime, 0, 2) = Image2(x, y, 0, 2);
+		double phi = asin(yHat);
+		double theta = asin(xHat / cos(phi));
+		int s = 800; // ½¹¾à
+		int xTide = s * theta + xCenter;
+		int yTide = s * phi + yCenter;
+		if (xTide < spherical2.width() && xTide >= 0 && yTide < spherical2.height() && yTide >= 0) {
+			spherical2(xTide, yTide, 0, 0) = Image2(x, y, 0, 0);
+			spherical2(xTide, yTide, 0, 1) = Image2(x, y, 0, 1);
+			spherical2(xTide, yTide, 0, 2) = Image2(x, y, 0, 2);
 		}
 	}
 	Image2 = spherical2;
