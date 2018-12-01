@@ -1,6 +1,11 @@
+
 #include <iostream>
 #include <iomanip>
 #include <string>
+
+#ifndef _MATRIX_H_
+#define _MATRIX_H_
+
 
 #define OVERFLOWED 1E-12
 class Matrix
@@ -41,3 +46,5 @@ private:
 	void RowSwap(int i, int j);
 	void FlowOver();
 };
+
+#endif // !_MATRIX_H_
