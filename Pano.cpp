@@ -45,18 +45,21 @@ Pano::Pano(const string filenames [], int n)
 		resultImage(x + imgs[img1Id].width() * (img1Id - 1)/2, y, 0, 1) = imgs[img1Id](x, y, 0, 1);
 		resultImage(x + imgs[img1Id].width() * (img1Id - 1)/2, y, 0, 2) = imgs[img1Id](x, y, 0, 2);
 	}
+	left[img1Id] = imgs[img1Id].width() * (img1Id - 1) / 2;
+	right[img1Id] = left[img1Id] + imgs[img1Id].width();
 	imgs[0] = resultImage; // 第0个图片为result
 	getFeatures(); // 获取所有图片的特征点
 	doPairsMatching(0, img2Id);
 	img1Id--; img2Id++;
 	for (int t = 0; t < num / 2; t++) {
 		cout << img1Id << " " << img2Id << endl;
-		updateFeatures();
 		if (img1Id >= 1) {
+			updateFeatures(img1Id);
 			doPairsMatching(0, img1Id);
 			img1Id--;
 		}
 		if (img2Id <= num - 1) {
+			updateFeatures(img2Id);
 			doPairsMatching(0, img2Id);
 			img2Id++;
 		}		
@@ -139,19 +142,26 @@ void Pano::getFeatures() {
 	}
 }
 
-void Pano::updateFeatures() {
+void Pano::updateFeatures(int imgId) {
 	cout << "update features of all the pics" << endl;
 	VlSiftFilt *SiftFilt = NULL;
-	
+	int referId = imgId < num / 2 ? imgId + 1 : imgId - 1;
+	CImg<unsigned char> * test = new CImg<unsigned char>(right[referId] - left[referId], imgs[0].height(), 1,3);
+	cimg_forXY(*test, x, y) {
+		(*test)(x, y, 0, 0) = imgs[0](x + left[referId],y,0,0);
+		(*test)(x, y, 0, 1) = imgs[0](x + left[referId], y, 0, 1);
+		(*test)(x, y, 0, 2) = imgs[0](x + left[referId], y, 0, 2);
+	}
 	// int noctaves = log(sqrt(imgs[1].height()*imgs[1].width())) / log(2) - 3;
 	int noctaves = 4;
 	int nlevels = 2, o_min = 0; // octave数目，每个octave层级数目
-	SiftFilt = vl_sift_new(imgs[0].width(), imgs[0].height(), noctaves, nlevels, o_min);
-	vl_sift_pix *ImageData = new vl_sift_pix[imgs[0].height()*imgs[0].width()];
+	SiftFilt = vl_sift_new((*test).width(), (*test).height(), noctaves, nlevels, o_min);
+	cout << "right[referId] " << right[referId] << "left[referId]) " << left[referId] << "refer " << referId << endl;
+	vl_sift_pix *ImageData = new vl_sift_pix[(*test).height()*(*test).width()/**imgs[0].width()*/];
 	for (int i = 0; i < imgs[0].height(); i++) {
-		for (int j = 0; j < imgs[0].width(); j++) {
-			int gray = imgs[0](j, i, 0, 0) * 0.299 + imgs[0](j, i, 0, 1) * 0.587 + imgs[0](j, i, 0, 2) * 0.114;
-			ImageData[i*imgs[0].width() + j] = gray;
+		for (int j = 0; j < (*test).width(); j++) {
+			int gray = (*test)(j, i, 0, 0) * 0.299 + (*test)(j, i, 0, 1) * 0.587 + (*test)(j, i, 0, 2) * 0.114;
+			ImageData[i*((*test).width()) + j] = gray;
 		}
 	}
 	vector< VlSiftKeypoint > tempKeys;
@@ -161,6 +171,7 @@ void Pano::updateFeatures() {
 			//计算每组中的关键点
 			vl_sift_detect(SiftFilt);
 			VlSiftKeypoint *pKeyPoint = SiftFilt->keys; // 特征点序列
+			cout << "特征点数目 " << SiftFilt->nkeys << endl;
 				// 生成描述子序列
 			for (int i = 0; i < SiftFilt->nkeys; i++) { // 遍历每一个特征点
 				VlSiftKeypoint TemptKeyPoint = *pKeyPoint; // 当前特征点
@@ -169,7 +180,9 @@ void Pano::updateFeatures() {
 				double angles[4];
 				int angleCount = vl_sift_calc_keypoint_orientations(SiftFilt, angles, &TemptKeyPoint); // 最多四个
 				for (int j = 0; j < angleCount; j++) {// 遍历所有的方向
-					tempKeys.push_back(TemptKeyPoint);
+					VlSiftKeypoint temp = TemptKeyPoint;
+					temp.x += left[referId];
+					tempKeys.push_back(temp);
 					double TemptAngle = angles[j];
 					//计算每个方向的描述
 					float *Descriptors = new float[128];
@@ -177,10 +190,10 @@ void Pano::updateFeatures() {
 					// 存入描述子序列
 					vector<float> copyOfDes;
 					for (int p = 0; p < 128; p++) {
-						copyOfDes.push_back(*(Descriptors + p));
+						copyOfDes.push_back(*(Descriptors+p));
 					}
 					tempDes.push_back(copyOfDes);
-					delete[] Descriptors;
+					delete [] Descriptors;
 					Descriptors = NULL;
 				}
 			}
@@ -191,10 +204,11 @@ void Pano::updateFeatures() {
 		}
 
 	}
-	delete[] ImageData;
 	vl_sift_delete(SiftFilt);
+	delete[] ImageData;
 	descriptors[0] = (tempDes);
 	keyPoints[0] = (tempKeys);
+	delete test;
 }
 
 void Pano::getMatchedPairs(int imgId) {
@@ -208,6 +222,7 @@ void Pano::getMatchedPairs(int imgId) {
 	for (unsigned int i = 0; i < descriptors[imgId].size(); i++)
 		std::copy(descriptors[imgId][i].begin(), descriptors[imgId][i].end(), data2 + 128 * i);
 	VlKDForest* forest = vl_kdforest_new(VL_TYPE_FLOAT, 128, 1, VlDistanceL1);
+	cout << " descriptors[0].size()  " << descriptors[0].size() << endl;
 	vl_kdforest_build(forest, descriptors[0].size(), data1);
 
 	VlKDForestSearcher* searcher = vl_kdforest_new_searcher(forest);
